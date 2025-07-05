@@ -1,0 +1,12 @@
+[package]
+name = "docoxide"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.40", features = ["derive"] }
+libreoffice-rs = "0.3.3"
+rouille = "3.6.2"
+tempfile = "3.20.0"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
