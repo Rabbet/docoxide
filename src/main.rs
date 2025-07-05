@@ -1,7 +1,10 @@
 use clap::Parser;
 
+mod errors;
 mod http_server;
+mod metrics;
 mod office;
+mod validation;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Document conversion service")]
