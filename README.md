@@ -1,4 +1,4 @@
-# DocOxide
+# docoxide
 
 A lightweight HTTP service for converting documents to PDF using LibreOffice.
 
@@ -18,11 +18,6 @@ cargo run
 # Specify custom LibreOffice path and port
 cargo run -- --office-path /path/to/libreoffice --port 8080
 ```
-
-## API
-
-POST `/convert2/pdf` - Upload a document file to convert to PDF
-POST `/convert2/pdfa` - Upload a document file to convert to PDF/A
 
 ## Requirements
 
