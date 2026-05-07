@@ -1,13 +1,13 @@
-use rouille::{post_input, try_or_400, Response};
+use rouille::{Response, post_input, try_or_400};
 use std::io::Write;
 use std::net::IpAddr;
 use std::path::Path;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 use tempfile::NamedTempFile;
 
-use crate::errors::{log_error, ConversionError};
+use crate::errors::{ConversionError, log_error};
 use crate::metrics::{HealthChecker, MetricsCollector};
 use crate::office::OfficeManager;
 use crate::validation::FileValidator;
@@ -260,7 +260,7 @@ fn process_conversion_request(
 
     tmp_input_file
         .write_all(&request.file_content)
-        .map_err(|e| ConversionError::Io(e))?;
+        .map_err(ConversionError::Io)?;
 
     let input_path = tmp_input_file
         .path()
@@ -283,8 +283,7 @@ fn process_conversion_request(
     }
 
     // Read and return the converted file
-    let output_content =
-        std::fs::read(tmp_output_file.path()).map_err(|e| ConversionError::Io(e))?;
+    let output_content = std::fs::read(tmp_output_file.path()).map_err(ConversionError::Io)?;
 
     if output_content.is_empty() {
         return Err(ConversionError::Internal(
@@ -300,7 +299,11 @@ fn get_client_ip(request: &rouille::Request) -> IpAddr {
         .header("X-Forwarded-For")
         .and_then(|val| val.split(',').next())
         .and_then(|ip| ip.trim().parse().ok())
-        .or_else(|| request.header("X-Real-IP").and_then(|ip| ip.trim().parse().ok()))
+        .or_else(|| {
+            request
+                .header("X-Real-IP")
+                .and_then(|ip| ip.trim().parse().ok())
+        })
         .unwrap_or_else(|| request.remote_addr().ip())
 }
 

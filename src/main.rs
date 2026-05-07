@@ -15,7 +15,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let _stdout_subscriber = tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::init();
 
     http_server::serve(args.office_path, args.port);
 }

@@ -44,8 +44,7 @@ impl ConversionError {
             "status": status_code
         });
 
-        Response::json(&error_response)
-            .with_status_code(status_code)
+        Response::json(&error_response).with_status_code(status_code)
     }
 }
 

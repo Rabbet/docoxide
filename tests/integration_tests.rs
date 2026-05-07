@@ -14,10 +14,7 @@ static SERVER_STARTED: OnceLock<()> = OnceLock::new();
 fn ensure_server_running() {
     SERVER_STARTED.get_or_init(|| {
         thread::spawn(|| {
-            http_server::serve(
-                "/usr/lib/libreoffice/program".to_string(),
-                TEST_SERVER_PORT,
-            );
+            http_server::serve("/usr/lib/libreoffice/program".to_string(), TEST_SERVER_PORT);
         });
     });
 }
@@ -28,13 +25,12 @@ async fn wait_for_server_ready() {
 
     while attempts < 30 {
         if let Ok(response) = client
-            .get(&format!("{}/health", TEST_SERVER_URL))
+            .get(format!("{}/health", TEST_SERVER_URL))
             .send()
             .await
+            && response.status().is_success()
         {
-            if response.status().is_success() {
-                return;
-            }
+            return;
         }
         tokio::time::sleep(Duration::from_millis(500)).await;
         attempts += 1;
@@ -59,7 +55,7 @@ async fn test_health_endpoint() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(&format!("{}/health", TEST_SERVER_URL))
+        .get(format!("{}/health", TEST_SERVER_URL))
         .send()
         .await
         .expect("Failed to make health request");
@@ -84,7 +80,7 @@ async fn test_metrics_endpoint() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(&format!("{}/metrics", TEST_SERVER_URL))
+        .get(format!("{}/metrics", TEST_SERVER_URL))
         .send()
         .await
         .expect("Failed to make metrics request");
@@ -122,7 +118,7 @@ async fn test_successful_docx_conversion() {
         .text("file_name", "test_document.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -161,7 +157,7 @@ async fn test_successful_xlsx_conversion() {
         .text("file_name", "test_spreadsheet.xlsx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -200,7 +196,7 @@ async fn test_pdfa_conversion() {
         .text("file_name", "test_document.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdfa", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdfa", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -239,7 +235,7 @@ async fn test_empty_file_rejection() {
         .text("file_name", "empty_file.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -252,10 +248,12 @@ async fn test_empty_file_rejection() {
         .await
         .expect("Failed to parse error response");
 
-    assert!(error_response["error"]
-        .as_str()
-        .unwrap()
-        .contains("Empty file"));
+    assert!(
+        error_response["error"]
+            .as_str()
+            .unwrap()
+            .contains("Empty file")
+    );
 }
 
 #[tokio::test]
@@ -278,7 +276,7 @@ async fn test_invalid_file_type_rejection() {
         .text("file_name", "test_document.txt");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -292,10 +290,12 @@ async fn test_invalid_file_type_rejection() {
         .expect("Failed to parse error response");
 
     // Plain-text payloads fail content-type detection before the extension check.
-    assert!(error_response["error"]
-        .as_str()
-        .unwrap()
-        .contains("Unknown or unsupported file type"));
+    assert!(
+        error_response["error"]
+            .as_str()
+            .unwrap()
+            .contains("Unknown or unsupported file type")
+    );
 }
 
 #[tokio::test]
@@ -320,7 +320,7 @@ async fn test_content_type_mismatch_rejection() {
         .text("file_name", "fake_document.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -333,10 +333,12 @@ async fn test_content_type_mismatch_rejection() {
         .await
         .expect("Failed to parse error response");
 
-    assert!(error_response["error"]
-        .as_str()
-        .unwrap()
-        .contains("File content does not match extension"));
+    assert!(
+        error_response["error"]
+            .as_str()
+            .unwrap()
+            .contains("File content does not match extension")
+    );
 }
 
 #[tokio::test]
@@ -359,7 +361,7 @@ async fn test_large_file_rejection() {
         .text("file_name", "large_file.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -372,10 +374,12 @@ async fn test_large_file_rejection() {
         .await
         .expect("Failed to parse error response");
 
-    assert!(error_response["error"]
-        .as_str()
-        .unwrap()
-        .contains("File too large"));
+    assert!(
+        error_response["error"]
+            .as_str()
+            .unwrap()
+            .contains("File too large")
+    );
 }
 
 #[tokio::test]
@@ -385,7 +389,7 @@ async fn test_invalid_endpoint() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(&format!("{}/invalid-endpoint", TEST_SERVER_URL))
+        .get(format!("{}/invalid-endpoint", TEST_SERVER_URL))
         .send()
         .await
         .expect("Failed to make request");
@@ -413,14 +417,14 @@ async fn test_concurrent_conversions() {
                 .part(
                     "file_content",
                     multipart::Part::bytes(file_content)
-                .mime_str("application/octet-stream")
-                .unwrap()
-                .file_name("test_document.docx"),
+                        .mime_str("application/octet-stream")
+                        .unwrap()
+                        .file_name("test_document.docx"),
                 )
                 .text("file_name", format!("test_document_{}.docx", i));
 
             client
-                .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+                .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
                 .multipart(form)
                 .send()
                 .await
@@ -431,13 +435,13 @@ async fn test_concurrent_conversions() {
 
     let mut success_count = 0;
     for task in tasks {
-        if let Ok(response) = task.await.expect("Task failed") {
-            if response.status().is_success() {
-                success_count += 1;
-                let pdf_content = response.bytes().await.expect("Failed to read PDF response");
-                assert!(!pdf_content.is_empty());
-                assert_eq!(&pdf_content[0..4], b"%PDF");
-            }
+        if let Ok(response) = task.await.expect("Task failed")
+            && response.status().is_success()
+        {
+            success_count += 1;
+            let pdf_content = response.bytes().await.expect("Failed to read PDF response");
+            assert!(!pdf_content.is_empty());
+            assert_eq!(&pdf_content[0..4], b"%PDF");
         }
     }
 
@@ -468,7 +472,7 @@ async fn test_filename_sanitization() {
         .text("file_name", "../../../etc/passwd.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -491,33 +495,25 @@ async fn test_multiple_file_formats() {
     wait_for_server_ready().await;
     let client = reqwest::Client::new();
 
-    let test_files = vec![
-        (
-            "test_document.docx",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ),
-        (
-            "test_spreadsheet.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ),
-    ];
+    let test_files = vec!["test_document.docx", "test_spreadsheet.xlsx"];
 
-    for (filename, expected_mime) in test_files {
+    for filename in test_files {
         let file_path = get_test_file_path(filename);
-        let file_content = fs::read(&file_path).expect(&format!("Failed to read {}", filename));
+        let file_content =
+            fs::read(&file_path).unwrap_or_else(|_| panic!("Failed to read {}", filename));
 
         let form = multipart::Form::new()
             .part(
                 "file_content",
                 multipart::Part::bytes(file_content)
-                .mime_str("application/octet-stream")
-                .unwrap()
-                .file_name(filename),
+                    .mime_str("application/octet-stream")
+                    .unwrap()
+                    .file_name(filename),
             )
             .text("file_name", filename);
 
         let response = client
-            .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+            .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
             .multipart(form)
             .send()
             .await
@@ -563,7 +559,7 @@ async fn test_conversion_timeout_handling() {
         .text("file_name", "test_document.docx");
 
     let response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await;
@@ -588,7 +584,7 @@ async fn test_metrics_accuracy() {
 
     // Get initial metrics
     let initial_response = client
-        .get(&format!("{}/metrics", TEST_SERVER_URL))
+        .get(format!("{}/metrics", TEST_SERVER_URL))
         .send()
         .await
         .expect("Failed to get initial metrics");
@@ -616,7 +612,7 @@ async fn test_metrics_accuracy() {
         .text("file_name", "test_document.docx");
 
     let conversion_response = client
-        .post(&format!("{}/convert2/pdf", TEST_SERVER_URL))
+        .post(format!("{}/convert2/pdf", TEST_SERVER_URL))
         .multipart(form)
         .send()
         .await
@@ -626,7 +622,7 @@ async fn test_metrics_accuracy() {
 
     // Get updated metrics
     let updated_response = client
-        .get(&format!("{}/metrics", TEST_SERVER_URL))
+        .get(format!("{}/metrics", TEST_SERVER_URL))
         .send()
         .await
         .expect("Failed to get updated metrics");
@@ -657,7 +653,7 @@ async fn test_health_status_changes() {
     let client = reqwest::Client::new();
 
     let health_response = client
-        .get(&format!("{}/health", TEST_SERVER_URL))
+        .get(format!("{}/health", TEST_SERVER_URL))
         .send()
         .await
         .expect("Failed to get health status");

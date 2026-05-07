@@ -1,5 +1,5 @@
 use crate::errors::{ConversionError, Result};
-use libreoffice_rs::{urls, Office as OfficeKit};
+use libreoffice_rs::{Office as OfficeKit, urls};
 
 pub struct OfficeManager {
     office: OfficeKit,

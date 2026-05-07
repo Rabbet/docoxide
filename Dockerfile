@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y \
     fc-cache -f && \
     rm -rf /var/lib/apt/lists/*
 
+RUN rustup component add clippy rustfmt
+
 COPY tests ./tests
 
 CMD ["bash", "-c", "cargo test --test integration_tests -- --nocapture 2>&1 | tee /tmp/test.log; grep -qE '^test result: ok\\..*0 failed' /tmp/test.log"]
