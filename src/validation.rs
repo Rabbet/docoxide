@@ -88,6 +88,11 @@ impl FileValidator {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | // .docx
             "application/vnd.openxmlformats-officedocument.presentationml.presentation" | // .pptx
             "application/vnd.ms-powerpoint" |                                    // .ppt
+            // Some tooling (e.g. python-docx) emits OOXML zips with non-standard
+            // entry ordering, so `infer` reports `application/zip` instead of the
+            // specific OOXML mime. Pair this with the extension check in
+            // `is_compatible_type` to still reject random zips.
+            "application/zip" |
             "application/octet-stream" // Generic binary
         )
     }
@@ -96,6 +101,9 @@ impl FileValidator {
         detected == extension
             || (detected == "application/octet-stream" && self.is_supported_mime(extension))
             || (extension == "application/octet-stream" && self.is_supported_mime(detected))
+            // OOXML files are zips; trust the extension when content-detection only
+            // sees the underlying zip container.
+            || (detected == "application/zip" && self.is_supported_mime(extension))
     }
 }
 
