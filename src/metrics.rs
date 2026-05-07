@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,7 +102,6 @@ impl MetricsCollector {
             0.0
         }
     }
-
 }
 
 impl Default for MetricsCollector {

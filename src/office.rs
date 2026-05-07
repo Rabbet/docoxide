@@ -1,5 +1,5 @@
 use crate::errors::{ConversionError, Result};
-use libreoffice_rs::{urls, Office as OfficeKit};
+use libreoffice_rs::{Office as OfficeKit, urls};
 
 pub struct OfficeManager {
     office: OfficeKit,
@@ -21,12 +21,16 @@ impl OfficeManager {
             ConversionError::LibreOffice(format!("Failed to convert path to URL: {}", e))
         })?;
 
+        let output_url = urls::local_into_abs(output_path).map_err(|e| {
+            ConversionError::LibreOffice(format!("Failed to convert output path to URL: {}", e))
+        })?;
+
         let mut doc = self
             .office
             .document_load(doc_url)
             .map_err(|e| ConversionError::LibreOffice(format!("Failed to load document: {}", e)))?;
 
-        if !doc.save_as(output_path, "pdf", None) {
+        if !doc.save_as(&output_url.to_string(), "pdf", None) {
             return Err(ConversionError::LibreOffice(
                 "Failed to save PDF file".to_string(),
             ));
@@ -50,6 +54,10 @@ impl OfficeManager {
             ConversionError::LibreOffice(format!("Failed to convert path to URL: {}", e))
         })?;
 
+        let output_url = urls::local_into_abs(output_path).map_err(|e| {
+            ConversionError::LibreOffice(format!("Failed to convert output path to URL: {}", e))
+        })?;
+
         let mut doc = self
             .office
             .document_load(doc_url)
@@ -59,7 +67,7 @@ impl OfficeManager {
         let pdf_options =
             "SelectPdfVersion=1;UseTaggedPDF=true;ExportNotes=true;ExportNotesPages=false";
 
-        if !doc.save_as(output_path, "pdf", Some(pdf_options)) {
+        if !doc.save_as(&output_url.to_string(), "pdf", Some(pdf_options)) {
             return Err(ConversionError::LibreOffice(
                 "Failed to save PDF/A file".to_string(),
             ));

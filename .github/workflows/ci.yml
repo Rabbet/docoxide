@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  fmt:
+    name: rustfmt
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: tester
+          load: true
+          tags: docoxide-tester:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - run: docker run --rm docoxide-tester:ci cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: tester
+          load: true
+          tags: docoxide-tester:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - run: docker run --rm --cap-add=SYS_NICE docoxide-tester:ci

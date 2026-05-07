@@ -1,5 +1,5 @@
 ### Builder Stage ###
-FROM rust:1.88.0-slim-bookworm AS builder
+FROM rust:1.95.0-slim-trixie AS builder
 
 WORKDIR /usr/src/app
 
@@ -16,8 +16,27 @@ COPY src ./src
 
 RUN cargo build --release
 
+### Test Stage ###
+FROM builder AS tester
+
+RUN apt-get update && apt-get install -y \
+    libreoffice-writer \
+    libreoffice-calc \
+    fonts-dejavu \
+    fonts-liberation \
+    fontconfig \
+    --no-install-recommends && \
+    fc-cache -f && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN rustup component add clippy rustfmt
+
+COPY tests ./tests
+
+CMD ["bash", "-c", "cargo test --test integration_tests -- --nocapture 2>&1 | tee /tmp/test.log; grep -qE '^test result: ok\\..*0 failed' /tmp/test.log"]
+
 ### Runtime Stage ###
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 
 RUN apt-get update && apt-get install -y \
     libreoffice \
@@ -25,6 +44,8 @@ RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-noto \
     fonts-noto-cjk \
+    fonts-crosextra-carlito \
+    fonts-crosextra-caladea \
     fontconfig \
     --no-install-recommends && \
     fc-cache -f && \
