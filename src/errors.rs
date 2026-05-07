@@ -46,7 +46,6 @@ impl ConversionError {
 
         Response::json(&error_response)
             .with_status_code(status_code)
-            .with_additional_header("Content-Type", "application/json")
     }
 }
 

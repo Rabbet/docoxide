@@ -22,4 +22,4 @@ cargo run -- --office-path /path/to/libreoffice --port 8080
 ## Requirements
 
 - LibreOffice installed
-- Rust 1.70+
+- Rust 1.85+

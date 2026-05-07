@@ -243,11 +243,18 @@ fn process_conversion_request(
         .as_mut()
         .ok_or_else(|| ConversionError::Internal("LibreOffice not initialized".to_string()))?;
 
-    let mut tmp_input_file = NamedTempFile::new().map_err(|e| {
+    // LibreOffice autodetects the input format from the file extension; without one, document_load hangs.
+    let input_suffix = Path::new(&request.filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| format!(".{}", e))
+        .unwrap_or_default();
+
+    let mut tmp_input_file = NamedTempFile::with_suffix(&input_suffix).map_err(|e| {
         ConversionError::TempFile(format!("Failed to create input temp file: {}", e))
     })?;
 
-    let tmp_output_file = NamedTempFile::new().map_err(|e| {
+    let tmp_output_file = NamedTempFile::with_suffix(".pdf").map_err(|e| {
         ConversionError::TempFile(format!("Failed to create output temp file: {}", e))
     })?;
 
@@ -279,14 +286,21 @@ fn process_conversion_request(
     let output_content =
         std::fs::read(tmp_output_file.path()).map_err(|e| ConversionError::Io(e))?;
 
+    if output_content.is_empty() {
+        return Err(ConversionError::Internal(
+            "Conversion produced empty output".to_string(),
+        ));
+    }
+
     Ok(output_content)
 }
 
 fn get_client_ip(request: &rouille::Request) -> IpAddr {
     request
         .header("X-Forwarded-For")
-        .and_then(|ip| ip.parse().ok())
-        .or_else(|| request.header("X-Real-IP").and_then(|ip| ip.parse().ok()))
+        .and_then(|val| val.split(',').next())
+        .and_then(|ip| ip.trim().parse().ok())
+        .or_else(|| request.header("X-Real-IP").and_then(|ip| ip.trim().parse().ok()))
         .unwrap_or_else(|| request.remote_addr().ip())
 }
 
