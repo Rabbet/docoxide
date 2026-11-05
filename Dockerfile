@@ -1,5 +1,5 @@
 ### Builder Stage ###
-FROM rust:1.95.0-slim-trixie AS builder
+FROM rust:1.99.1-slim-trixie AS builder
 
 WORKDIR /usr/src/app
 
